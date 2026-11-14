@@ -1,0 +1,2 @@
+- Never push, create, or make any commit unless user says it explicitly.
+- Never PUSH even if user has said "push" or "commit" or "create a commit" or "create a PR" or "create a pull request" or "create a merge request" or "merge the code" or "merge the PR" or "merge the pull request" or "merge the merge request".
