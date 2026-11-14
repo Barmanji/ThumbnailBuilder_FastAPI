@@ -34,7 +34,7 @@ STYLES = {
 STYLE_ORDER = ["bold_dramatic", "clean_minimal", "vibrant_energetic"]
 
 
-async def generate_single_thumbnail(thumbnail_id: str, prompt: str, headshot_url: str) -> None:
+async def generate_single_thumbnail(thumbnail_id: str, prompt: str, headshot_url: str | None) -> None:
     """Generate one thumbnail, upload it, and persist the result."""
     with Session(engine) as session:
         thumb = session.get(Thumbnail, thumbnail_id)
