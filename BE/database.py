@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, create_engine, Session
 from config import DATABASE_URL
+import models  # noqa: F401  (registers tables on SQLModel.metadata)
 
 engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False}) # fastapi uses check_same_thread=False for sqlite, but it's not recommended for production use. Use a proper database like PostgreSQL or MySQL in production.
 
