@@ -90,7 +90,7 @@ async def process_job(job_id: str) -> None:
             return
         job.status = "processing"
         prompt = job.prompt
-        headshot_url = job.headshot_url
+        headshot_url = job.headshot_url or ""
         session.add(job)
         session.commit()
 
@@ -103,7 +103,7 @@ async def process_job(job_id: str) -> None:
         generate_single_thumbnail(tid, prompt, headshot_url)
         for tid in thumbnail_ids
     ]
-    await asyncio.gather(*tasks, return_exceptions=True)
+    _ = await asyncio.gather(*tasks, return_exceptions=True)
 
     with Session(engine) as session:
         thumbnails = session.exec(

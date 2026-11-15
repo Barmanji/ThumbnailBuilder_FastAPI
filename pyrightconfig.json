@@ -1,0 +1,14 @@
+{
+  "include": ["BE"],
+  "exclude": ["**/__pycache__", "**/.venv", "**/node_modules"],
+  "extraPaths": ["BE"],
+  "reportCallInDefaultInitializer": "none",
+  "reportExplicitAny": "none",
+  "reportAny": "none",
+  "executionEnvironments": [
+    {
+      "root": "BE",
+      "extraPaths": ["BE"]
+    }
+  ]
+}

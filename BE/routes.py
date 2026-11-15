@@ -2,9 +2,8 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File # bare min
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from database import get_session
 from models import Job, Thumbnail
@@ -15,7 +14,7 @@ from services.imagekit_service import upload_image, get_variants
 logger = logging.getLogger(__name__)
 
 # Hold background task refs so they aren't garbage-collected mid-run
-_background_tasks: set[asyncio.Task] = set()
+_background_tasks: set[asyncio.Task[None]] = set()
 
 # Routing obilerplate
 
@@ -37,7 +36,7 @@ class ThumbnailResponse(BaseModel):
     status: str
     imagekit_url: str | None = None
     error_message: str | None = None
-    variants: dict | None = None
+    variants: dict[str, str] | None = None
 
 @router.post("/upload-headshot")
 async def upload_headshot(file: UploadFile = File(...)):
