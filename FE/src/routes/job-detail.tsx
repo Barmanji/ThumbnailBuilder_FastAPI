@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon,
   DownloadIcon,
   Loader2Icon,
+  Maximize2Icon,
   RefreshCwIcon,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router'
@@ -21,6 +22,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -29,6 +39,7 @@ import { useApi } from '@/hooks/use-api'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useJobStream } from '@/hooks/use-job-stream'
 import type { Thumbnail, Variants } from '@/lib/api'
+import { downloadImage, thumbnailFilename } from '@/lib/download'
 import { FALLBACK_STYLES, styleLabel } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +49,12 @@ const VARIANT_LABELS: Record<VariantKey, string> = {
   youtube: 'YouTube',
   shorts: 'Shorts',
   square: 'Square',
+}
+
+const VARIANT_DIMENSIONS: Record<VariantKey, string> = {
+  youtube: '1280 × 720 · 16:9',
+  shorts: '1080 × 1920 · 9:16',
+  square: '1080 × 1080 · 1:1',
 }
 
 function ThumbnailCard({
@@ -50,6 +67,8 @@ function ThumbnailCard({
   const api = useApi()
   const queryClient = useQueryClient()
   const [variant, setVariant] = useState<VariantKey>('youtube')
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const retry = useMutation({
     mutationFn: () => api.retryThumbnail(jobId, thumbnail.id),
@@ -67,83 +86,138 @@ function ThumbnailCard({
   const label = styleLabel(FALLBACK_STYLES, thumbnail.style_name)
   const src = thumbnail.variants?.[variant] ?? thumbnail.imagekit_url
 
+  async function handleDownload(url: string) {
+    setDownloading(true)
+    try {
+      await downloadImage(url, thumbnailFilename(label, variant))
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Could not download the image.',
+      )
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
-    <Card className="overflow-hidden pt-0">
-      <div className="relative aspect-video bg-muted">
-        {thumbnail.status === 'uploaded' && src ? (
-          <img
-            src={src}
-            alt={`${label} thumbnail`}
-            className="size-full object-cover"
-          />
-        ) : thumbnail.status === 'error' ? (
-          <div className="flex size-full flex-col items-center justify-center gap-2 p-6 text-center">
-            <AlertTriangleIcon className="size-5 text-destructive" />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {thumbnail.error_message ?? 'Generation failed.'}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => retry.mutate()}
-              disabled={retry.isPending}
-            >
-              <RefreshCwIcon data-icon="inline-start" />
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="flex size-full flex-col items-center justify-center gap-2">
-            <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              {thumbnail.status === 'generating'
-                ? 'Painting pixels…'
-                : 'Queued'}
-            </p>
-          </div>
-        )}
-      </div>
+    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      <Card className="overflow-hidden pt-0">
+        <div className="relative aspect-video bg-muted">
+          {thumbnail.status === 'uploaded' && src ? (
+            <>
+              <img
+                src={src}
+                alt={`${label} thumbnail`}
+                className="size-full object-contain"
+              />
+              <DialogTrigger
+                render={
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label={`Expand ${label} ${VARIANT_LABELS[variant]}`}
+                    className="absolute right-2 bottom-2 shadow-sm"
+                  />
+                }
+              >
+                <Maximize2Icon />
+              </DialogTrigger>
+            </>
+          ) : thumbnail.status === 'error' ? (
+            <div className="flex size-full flex-col items-center justify-center gap-2 p-6 text-center">
+              <AlertTriangleIcon className="size-5 text-destructive" />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {thumbnail.error_message ?? 'Generation failed.'}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => retry.mutate()}
+                disabled={retry.isPending}
+              >
+                <RefreshCwIcon data-icon="inline-start" />
+                Retry
+              </Button>
+            </div>
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-2">
+              <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                {thumbnail.status === 'generating'
+                  ? 'Painting pixels…'
+                  : 'Queued'}
+              </p>
+            </div>
+          )}
+        </div>
 
-      <CardHeader className="pt-4">
-        <CardTitle className="flex items-center justify-between gap-2 text-sm">
-          {label}
-          {thumbnail.status === 'uploaded' ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              render={
-                <a
-                  href={thumbnail.imagekit_url ?? src ?? '#'}
-                  download
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Download ${label}`}
-                />
-              }
+        <CardHeader className="pt-4">
+          <CardTitle className="flex items-center justify-between gap-2 text-sm">
+            {label}
+            {thumbnail.status === 'uploaded' && src ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={downloading}
+                onClick={() => void handleDownload(src)}
+                aria-label={`Download ${label} ${VARIANT_LABELS[variant]}`}
+              >
+                <DownloadIcon />
+              </Button>
+            ) : null}
+          </CardTitle>
+        </CardHeader>
+
+        {thumbnail.status === 'uploaded' && thumbnail.variants ? (
+          <CardFooter>
+            <Tabs
+              value={variant}
+              onValueChange={(value) => setVariant(value as VariantKey)}
             >
-              <DownloadIcon />
-            </Button>
+              <TabsList className="w-full">
+                {(Object.keys(VARIANT_LABELS) as VariantKey[]).map((key) => (
+                  <TabsTrigger key={key} value={key} className="flex-1">
+                    {VARIANT_LABELS[key]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </CardFooter>
+        ) : null}
+      </Card>
+
+      <DialogContent className="max-w-[calc(100%-2rem)]! sm:max-w-5xl!">
+        <DialogHeader>
+          <DialogTitle>
+            {label} · {VARIANT_LABELS[variant]}
+          </DialogTitle>
+          <DialogDescription>
+            {VARIANT_DIMENSIONS[variant]} — full view, scaled to fit your screen.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-lg bg-muted/40">
+          {src ? (
+            <img
+              src={src}
+              alt={`${label} ${VARIANT_LABELS[variant]} thumbnail`}
+              className="max-h-[75vh] max-w-full object-contain"
+            />
           ) : null}
-        </CardTitle>
-      </CardHeader>
+        </div>
 
-      {thumbnail.status === 'uploaded' && thumbnail.variants ? (
-        <CardFooter>
-          <Tabs
-            value={variant}
-            onValueChange={(value) => setVariant(value as VariantKey)}
+        <DialogFooter>
+          <Button
+            variant="outline"
+            disabled={downloading}
+            onClick={() => src && void handleDownload(src)}
           >
-            <TabsList className="w-full">
-              {(Object.keys(VARIANT_LABELS) as VariantKey[]).map((key) => (
-                <TabsTrigger key={key} value={key} className="flex-1">
-                  {VARIANT_LABELS[key]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </CardFooter>
-      ) : null}
-    </Card>
+            <DownloadIcon data-icon="inline-start" />
+            Download
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
