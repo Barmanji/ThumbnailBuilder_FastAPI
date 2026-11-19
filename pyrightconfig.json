@@ -2,6 +2,8 @@
   "include": ["BE"],
   "exclude": ["**/__pycache__", "**/.venv", "**/node_modules"],
   "extraPaths": ["BE"],
+  "venvPath": "BE",
+  "venv": ".venv",
   "reportCallInDefaultInitializer": "none",
   "reportExplicitAny": "none",
   "reportAny": "none",

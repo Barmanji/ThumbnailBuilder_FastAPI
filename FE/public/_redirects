@@ -1,0 +1,2 @@
+# SPA fallback for hosts that do not resolve unknown paths automatically.
+/*    /index.html   200

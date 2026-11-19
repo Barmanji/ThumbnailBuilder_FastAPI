@@ -33,6 +33,23 @@ STYLES = {
 
 STYLE_ORDER = ["bold_dramatic", "clean_minimal", "vibrant_energetic"]
 
+# UI copy for the style picker, kept next to the prompts so the two cannot drift.
+STYLE_DETAILS: dict[str, dict[str, str]] = {
+    "bold_dramatic": {
+        "label": "Bold & dramatic",
+        "description": "High contrast, cinematic lighting, dark moody background, powerful composition.",
+    },
+    "clean_minimal": {
+        "label": "Clean & minimal",
+        "description": "Bright lighting, light background, plenty of whitespace, sharp professional look.",
+    },
+    "vibrant_energetic": {
+        "label": "Vibrant & energetic",
+        "description": "Colorful gradients, dynamic angles, pop-art colors, excited expression.",
+    },
+}
+
+
 
 async def generate_single_thumbnail(thumbnail_id: str, prompt: str, headshot_url: str | None) -> None:
     """Generate one thumbnail, upload it, and persist the result."""
@@ -104,15 +121,44 @@ async def process_job(job_id: str) -> None:
         for tid in thumbnail_ids
     ]
     _ = await asyncio.gather(*tasks, return_exceptions=True)
+    refresh_job_status(job_id)
 
+
+def refresh_job_status(job_id: str) -> None:
+    """Derive the job status from the statuses of its thumbnails."""
     with Session(engine) as session:
         thumbnails = session.exec(
             select(Thumbnail).where(Thumbnail.job_id == job_id)
         ).all()
-        all_failed = bool(thumbnails) and all(t.status == "error" for t in thumbnails)
 
         job = session.get(Job, job_id)
-        if job is not None:
-            job.status = "failed" if all_failed else "completed"
-            session.add(job)
-            session.commit()
+        if job is None:
+            return
+
+        if any(t.status in ("pending", "generating") for t in thumbnails):
+            job.status = "processing"
+        elif thumbnails and all(t.status == "error" for t in thumbnails):
+            job.status = "failed"
+        else:
+            job.status = "completed"
+
+        session.add(job)
+        session.commit()
+
+
+async def regenerate_thumbnail(job_id: str, thumbnail_id: str) -> None:
+    """Re-run a single style, usually after the model returned an error."""
+    with Session(engine) as session:
+        job = session.get(Job, job_id)
+        if job is None:
+            logger.error("Job %s not found for retry.", job_id)
+            return
+        prompt = job.prompt
+        headshot_url = job.headshot_url or ""
+        job.status = "processing"
+        session.add(job)
+        session.commit()
+
+    await generate_single_thumbnail(thumbnail_id, prompt, headshot_url)
+    refresh_job_status(job_id)
+
