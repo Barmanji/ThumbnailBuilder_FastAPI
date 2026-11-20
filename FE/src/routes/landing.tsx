@@ -15,12 +15,6 @@ import { Button } from '@/components/ui/button'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { FALLBACK_STYLES } from '@/lib/styles'
 
-const PREVIEW_TONES = [
-  'from-zinc-900 via-zinc-800 to-zinc-700 text-zinc-100',
-  'from-zinc-100 via-zinc-50 to-zinc-200 text-zinc-900',
-  'from-violet-900 via-fuchsia-800 to-orange-700 text-white',
-]
-
 const STEPS = [
   {
     icon: WandSparklesIcon,
@@ -100,18 +94,24 @@ export function LandingPage() {
           </div>
 
           <div className="mt-14 grid gap-4 sm:grid-cols-3">
-            {FALLBACK_STYLES.map((style, index) => (
+            {FALLBACK_STYLES.map((style) => (
               <figure
                 key={style.name}
                 className="overflow-hidden rounded-xl border bg-card"
               >
-                <div
-                  className={`relative flex aspect-video items-end bg-gradient-to-br p-4 ${PREVIEW_TONES[index] ?? PREVIEW_TONES[0]}`}
-                >
-                  <span className="absolute top-3 left-3 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase backdrop-blur">
+                <div className="relative aspect-video bg-muted">
+                  <img
+                    src={`https://picsum.photos/seed/thumbnail-builder-${style.name}/640/360`}
+                    alt={`${style.label} preview`}
+                    loading="lazy"
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                  <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase backdrop-blur">
                     16:9
                   </span>
-                  <span className="text-sm font-semibold">{style.label}</span>
+                  <span className="absolute inset-x-0 bottom-0 bg-black/40 p-4 text-sm font-semibold text-white">
+                    {style.label}
+                  </span>
                 </div>
                 <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground">
                   {style.description}
