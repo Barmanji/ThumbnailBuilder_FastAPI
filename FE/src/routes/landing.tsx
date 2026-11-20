@@ -33,6 +33,21 @@ const STEPS = [
   },
 ]
 
+const STYLE_PREVIEWS: Record<
+  string,
+  { ratio: string; width: number; height: number }
+> = {
+  bold_dramatic: { ratio: '16:9', width: 640, height: 360 },
+  clean_minimal: { ratio: '1:1', width: 600, height: 600 },
+  vibrant_energetic: { ratio: '9:16', width: 360, height: 640 },
+}
+
+function aspectClass(ratio: string): string {
+  if (ratio === '9:16') return 'aspect-[9/16]'
+  if (ratio === '1:1') return 'aspect-[1/1]'
+  return 'aspect-video'
+}
+
 const YEAR = new Date().getFullYear()
 
 export function LandingPage() {
@@ -99,15 +114,15 @@ export function LandingPage() {
                 key={style.name}
                 className="overflow-hidden rounded-xl border bg-card"
               >
-                <div className="relative aspect-video bg-muted">
+                <div className={`relative ${aspectClass(STYLE_PREVIEWS[style.name]?.ratio ?? '16:9')} bg-muted`}>
                   <img
-                    src={`https://picsum.photos/seed/thumbnail-builder-${style.name}/640/360`}
+                    src={`https://picsum.photos/seed/thumbnail-builder-${style.name}/${STYLE_PREVIEWS[style.name]?.width ?? 640}/${STYLE_PREVIEWS[style.name]?.height ?? 360}`}
                     alt={`${style.label} preview`}
                     loading="lazy"
                     className="absolute inset-0 size-full object-cover"
                   />
                   <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase backdrop-blur">
-                    16:9
+                    {STYLE_PREVIEWS[style.name]?.ratio ?? '16:9'}
                   </span>
                   <span className="absolute inset-x-0 bottom-0 bg-black/40 p-4 text-sm font-semibold text-white">
                     {style.label}
