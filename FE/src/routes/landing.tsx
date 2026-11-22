@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { FALLBACK_STYLES } from '@/lib/styles'
+import { cn } from '@/lib/utils'
 
 const STEPS = [
   {
@@ -35,17 +36,31 @@ const STEPS = [
 
 const STYLE_PREVIEWS: Record<
   string,
-  { ratio: string; width: number; height: number }
+  { ratio: string; width: number; height: number; frame: string }
 > = {
-  bold_dramatic: { ratio: '16:9', width: 640, height: 360 },
-  clean_minimal: { ratio: '1:1', width: 600, height: 600 },
-  vibrant_energetic: { ratio: '9:16', width: 360, height: 640 },
-}
-
-function aspectClass(ratio: string): string {
-  if (ratio === '9:16') return 'aspect-[9/16]'
-  if (ratio === '1:1') return 'aspect-[1/1]'
-  return 'aspect-video'
+  bold_dramatic: {
+    ratio: '16:9',
+    width: 640,
+    height: 360,
+    // Wide frame. On small screens it fills the column; from lg it shares a
+    // height with the other two so the width shows 16:9.
+    frame:
+      'aspect-video h-auto w-[min(100vw-2rem,36rem)] lg:h-64 lg:w-auto xl:h-72',
+  },
+  clean_minimal: {
+    ratio: '1:1',
+    width: 600,
+    height: 600,
+    frame: 'aspect-square size-64 xl:size-72',
+  },
+  vibrant_energetic: {
+    ratio: '9:16',
+    width: 360,
+    height: 640,
+    // Same height as the row on large screens, so this stays a narrow poster
+    // instead of a full-width tower.
+    frame: 'aspect-[9/16] h-72 w-auto lg:h-64 xl:h-72',
+  },
 }
 
 const YEAR = new Date().getFullYear()
@@ -108,31 +123,35 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-14 grid gap-4 sm:grid-cols-3">
-            {FALLBACK_STYLES.map((style) => (
-              <figure
-                key={style.name}
-                className="overflow-hidden rounded-xl border bg-card"
-              >
-                <div className={`relative ${aspectClass(STYLE_PREVIEWS[style.name]?.ratio ?? '16:9')} bg-muted`}>
-                  <img
-                    src={`https://picsum.photos/seed/thumbnail-builder-${style.name}/${STYLE_PREVIEWS[style.name]?.width ?? 640}/${STYLE_PREVIEWS[style.name]?.height ?? 360}`}
-                    alt={`${style.label} preview`}
-                    loading="lazy"
-                    className="absolute inset-0 size-full object-cover"
-                  />
-                  <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase backdrop-blur">
-                    {STYLE_PREVIEWS[style.name]?.ratio ?? '16:9'}
-                  </span>
-                  <span className="absolute inset-x-0 bottom-0 bg-black/40 p-4 text-sm font-semibold text-white">
-                    {style.label}
-                  </span>
-                </div>
-                <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground">
-                  {style.description}
-                </figcaption>
-              </figure>
-            ))}
+          <div className="mt-14 flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center lg:gap-4">
+            {FALLBACK_STYLES.map((style) => {
+              const preview = STYLE_PREVIEWS[style.name]
+
+              return (
+                <figure
+                  key={style.name}
+                  className="w-fit max-w-full overflow-hidden rounded-xl border bg-card"
+                >
+                  <div className={cn('relative bg-muted', preview.frame)}>
+                    <img
+                      src={`https://picsum.photos/seed/thumbnail-builder-${style.name}/${preview.width}/${preview.height}`}
+                      alt={`${style.label} preview`}
+                      loading="lazy"
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                    <span className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase backdrop-blur">
+                      {preview.ratio}
+                    </span>
+                    <span className="absolute inset-x-0 bottom-0 bg-black/40 px-3 py-2.5 text-xs font-semibold leading-snug text-white">
+                      {style.label}
+                    </span>
+                  </div>
+                  <figcaption className="w-0 min-w-full p-3 text-xs leading-relaxed text-muted-foreground">
+                    {style.description}
+                  </figcaption>
+                </figure>
+              )
+            })}
           </div>
         </section>
 
